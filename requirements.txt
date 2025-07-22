@@ -1,0 +1,4 @@
+flask
+psutil
+mcrcon
+python-telegram-bot==20.0b0
