@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-neutral-800 text-neutral-200 min-h-screen">
+    {% include 'navbar.html' %}
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Профиль</h1>
+        <div class="max-w-3xl mx-auto bg-neutral-900 rounded-lg shadow-md p-6 mb-8">
+            <p class="mb-2"><span class="font-semibold">Email:</span> {{ user.email }}</p>
+        </div>
+        <h3 class="text-xl font-semibold mb-4">Ваши заказы:</h3>
+        <div class="flex flex-wrap gap-2 mb-8">
+            <a href="/profile" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Консоль</a>
+            <a href="/files/{{ orders[0].order_id }}/" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Файлы</a>
+            <a href="/server/{{ orders[0].order_id }}/databases" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Базы данных</a>
+            <a href="/server/{{ orders[0].order_id }}/schedules" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Планировщик</a>
+            <a href="/server/{{ orders[0].order_id }}/users" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Пользователи</a>
+            <a href="/server/{{ orders[0].order_id }}/backups" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Бэкапы</a>
+            <a href="/server/{{ orders[0].order_id }}/network" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Сеть</a>
+            <a href="/server/{{ orders[0].order_id }}/startup" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Запуск</a>
+            <a href="/server/{{ orders[0].order_id }}/settings" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Настройки</a>
+            <a href="/server/{{ orders[0].order_id }}/activity" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Активность</a>
+            <a href="/server/{{ orders[0].order_id }}/subdomain" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Поддомен</a>
+        </div>
+        {% if orders %}
+            <div class="flex flex-col gap-6">
+            {% for o in orders %}
+            <div class="bg-neutral-900 rounded-lg shadow-md p-6 flex flex-col w-full">
+                <div class="flex justify-between items-center mb-2">
+                    <div>
+                        <div class="text-lg font-bold mb-1">{{ o.tariff }}</div>
+                        <div class="text-sm text-neutral-400 mb-1">RAM: <span class="font-bold text-yellow-400">{{ o.tariff_params.ram }}</span>, Слотов: <span class="font-bold text-green-400">{{ o.tariff_params.slots }}</span>, Цена: <span class="font-bold text-cyan-400">{{ o.tariff_params.price }}₽/мес</span></div>
+                        <div class="text-sm mb-1">Для подключения: <span class="text-blue-400 font-mono">127.0.0.1:{{ o.server_port }}</span></div>
+                        <div class="text-sm">Статус: <span class="font-bold {% if o.status == 'running' %}text-green-400{% else %}text-red-400{% endif %}" id="status-{{ o.order_id }}">{{ 'Запущен' if o.status == 'running' else 'Остановлен' }}</span>
+                        <span id="action-status-{{ o.order_id }}" class="ml-2 text-yellow-400"></span></div>
+                    </div>
+                </div>
+                <form method="post" class="flex space-x-2 mb-3 server-controls">
+                    <input type="hidden" name="order_idx" value="{{ loop.index0 }}">
+                    <button type="submit" name="action" value="start" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-4 rounded">Start</button>
+                    <button type="submit" name="action" value="stop" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded">Stop</button>
+                    <button type="submit" name="action" value="restart" class="bg-yellow-600 hover:bg-yellow-700 text-white font-semibold py-1 px-4 rounded">Restart</button>
+                </form>
+                <a href="/files/{{ o.order_id }}/" class="block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded text-center mb-3">Файлы сервера</a>
+                <div class="mb-3">
+                    <div class="font-semibold mb-1">Консоль:</div>
+                    <div class="bg-neutral-800 rounded p-2 text-xs h-32 overflow-y-auto" id="console-log-{{ o.order_id }}">
+                        {% for line in o.log|reverse %}
+                        <div>{{ line }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% if o.real_log %}
+                <div class="mb-3">
+                    <div class="font-semibold mb-1 text-green-300">Логи сервера:</div>
+                    <div class="bg-neutral-800 rounded p-2 text-xs h-32 overflow-y-auto" id="real-log-{{ o.order_id }}">
+                        {% for line in o.real_log %}
+                        <div>{{ line }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                <form onsubmit="return sendRconCommand('{{ o.order_id }}', this);" class="flex space-x-2 mb-3">
+                    <input type="text" name="command" placeholder="RCON команда..." class="flex-1 px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" />
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded">Отправить (RCON)</button>
+                </form>
+                <div id="rcon-response-{{ o.order_id }}" class="text-sm text-emerald-300 mb-2"></div>
+                <div class="mt-2">
+                    <div class="font-semibold mb-1">Мониторинг</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs mb-2" id="metrics-{{ o.order_id }}">
+                        <div><span class="font-bold">CPU:</span> <span class="metric-cpu">--</span>%</div>
+                        <div><span class="font-bold">RAM:</span> <span class="metric-ram">--</span> MB</div>
+                        <div><span class="font-bold">Онлайн:</span> <span class="metric-online">--</span></div>
+                        <div><span class="font-bold">TPS:</span> <span class="metric-tps">--</span></div>
+                        <div><span class="font-bold">Аптайм:</span> <span class="metric-uptime">--</span></div>
+                    </div>
+                    <canvas id="chart-{{ o.order_id }}" width="220" height="120" class="bg-neutral-800 rounded"></canvas>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+        {% else %}
+        <p class="text-neutral-400">У вас нет заказов.</p>
+        {% endif %}
+        <div class="flex space-x-4 mt-8">
+            <a href="/logout" class="text-red-400 hover:underline">Выйти</a>
+            {% if user.is_admin %}
+            <a href="/admin" class="text-cyan-400 hover:underline">Админка</a>
+            {% endif %}
+            <a href="/" class="text-cyan-400 hover:underline">На главную</a>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var orderIds = JSON.parse('{{ orders|map(attribute="order_id")|list|tojson|safe }}');
+    </script>
+    <script>
+        function fetchLogs(orderId) {
+            fetch(`/logs/${orderId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const logDiv = document.getElementById('real-log-' + orderId);
+                    if (logDiv) {
+                        logDiv.innerHTML = data.real_log.map(line => `<div>${line}</div>`).join('');
+                    }
+                    const consoleDiv = document.getElementById('console-log-' + orderId);
+                    if (consoleDiv) {
+                        consoleDiv.innerHTML = data.log.map(line => `<div>${line}</div>`).join('');
+                    }
+                });
+        }
+        for (var i = 0; i < orderIds.length; i++) {
+            setInterval((function(orderId) {
+                return function() { fetchLogs(orderId); };
+            })(orderIds[i]), 3000);
+        }
+    </script>
+    <script>
+        function updateServerStatus(orderId) {
+            fetch(`/server_status/${orderId}`)
+                .then(r => r.json())
+                .then(data => {
+                    const statusSpan = document.getElementById('status-' + orderId);
+                    if (statusSpan) {
+                        if (data.status === 'running') {
+                            statusSpan.textContent = 'Запущен';
+                            statusSpan.className = 'font-bold text-green-400';
+                        } else if (data.status === 'stopped') {
+                            statusSpan.textContent = 'Остановлен';
+                            statusSpan.className = 'font-bold text-red-400';
+                        } else {
+                            statusSpan.textContent = 'Не найден';
+                            statusSpan.className = 'font-bold';
+                        }
+                    }
+                });
+        }
+        setInterval(function() {
+            orderIds.forEach(updateServerStatus);
+        }, 3000);
+    </script>
+    <script>
+        document.querySelectorAll('.server-controls').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const orderIdx = this.querySelector('input[name="order_idx"]').value;
+                const action = this.querySelector('button[type="submit"][clicked]')?.value || this.querySelector('button[type="submit"]:focus')?.value;
+                if (!action) return;
+                const orderId = orderIds[orderIdx];
+                const statusSpan = document.getElementById('action-status-' + orderId);
+                if (action === 'start') statusSpan.textContent = 'Запускается...';
+                if (action === 'stop') statusSpan.textContent = 'Останавливается...';
+                if (action === 'restart') statusSpan.textContent = 'Перезапуск...';
+                setTimeout(() => { statusSpan.textContent = ''; }, 8000);
+            });
+            form.querySelectorAll('button[type="submit"]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.setAttribute('clicked', 'true');
+                    setTimeout(() => this.removeAttribute('clicked'), 100);
+                });
+            });
+        });
+    </script>
+    <script>
+        function sendRconCommand(orderId, form) {
+            const input = form.querySelector('input[name="command"]');
+            const respDiv = document.getElementById('rcon-response-' + orderId);
+            fetch(`/rcon_command/${orderId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'command=' + encodeURIComponent(input.value)
+            })
+            .then(r => r.json())
+            .then(data => {
+                respDiv.textContent = data.response;
+            })
+            .catch(e => {
+                respDiv.textContent = 'Ошибка отправки: ' + e;
+            });
+            input.value = '';
+            return false;
+        }
+    </script>
+    <script>
+        function randomMetric(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}ч ${m}м ${s}с`;
+        }
+        var monitoringCharts = {};
+        orderIds.forEach(function(orderId) {
+            const ctx = document.getElementById('chart-' + orderId);
+            if (!ctx) return;
+            monitoringCharts[orderId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Array(20).fill(''),
+                    datasets: [
+                        {
+                            label: 'CPU %',
+                            data: Array(20).fill(0),
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37,99,235,0.08)',
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'RAM MB',
+                            data: Array(20).fill(0),
+                            borderColor: '#059669',
+                            backgroundColor: 'rgba(5,150,105,0.08)',
+                            tension: 0.3,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: false,
+                    plugins: { legend: { display: true } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        });
+        setInterval(function() {
+            orderIds.forEach(function(orderId) {
+                const cpu = randomMetric(10, 80).toFixed(1);
+                const ram = randomMetric(400, 1200).toFixed(0);
+                const online = Math.floor(randomMetric(0, 10));
+                const tps = randomMetric(18, 20).toFixed(2);
+                const uptime = formatUptime(Math.floor(randomMetric(1000, 10000)));
+                const metrics = document.getElementById('metrics-' + orderId);
+                if (metrics) {
+                    metrics.querySelector('.metric-cpu').textContent = cpu;
+                    metrics.querySelector('.metric-ram').textContent = ram;
+                    metrics.querySelector('.metric-online').textContent = online;
+                    metrics.querySelector('.metric-tps').textContent = tps;
+                    metrics.querySelector('.metric-uptime').textContent = uptime;
+                }
+                const chart = monitoringCharts[orderId];
+                if (chart) {
+                    chart.data.datasets[0].data.push(Number(cpu));
+                    chart.data.datasets[0].data.shift();
+                    chart.data.datasets[1].data.push(Number(ram));
+                    chart.data.datasets[1].data.shift();
+                    chart.update('none');
+                }
+            });
+        }, 3000);
+    </script>
+</body>
+</html> 

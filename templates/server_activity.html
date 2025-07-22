@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Активность</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-neutral-800 text-neutral-200 min-h-screen">
+    {% include 'navbar.html' %}
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Активность</h1>
+        <div class="flex flex-wrap gap-2 mb-8 justify-center">
+            <a href="/profile" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Консоль</a>
+            <a href="/files/{{ order_id }}/" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Файлы</a>
+            <a href="/server/{{ order_id }}/databases" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Базы данных</a>
+            <a href="/server/{{ order_id }}/schedules" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Планировщик</a>
+            <a href="/server/{{ order_id }}/users" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Пользователи</a>
+            <a href="/server/{{ order_id }}/backups" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Бэкапы</a>
+            <a href="/server/{{ order_id }}/network" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Сеть</a>
+            <a href="/server/{{ order_id }}/startup" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Запуск</a>
+            <a href="/server/{{ order_id }}/settings" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Настройки</a>
+            <a href="/server/{{ order_id }}/activity" class="px-4 py-2 rounded bg-cyan-700 text-white font-bold">Активность</a>
+            <a href="/server/{{ order_id }}/subdomain" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Поддомен</a>
+        </div>
+        <div class="bg-neutral-900 rounded-lg shadow-md p-6 w-full max-w-3xl mx-auto">
+            <h2 class="text-xl font-semibold mb-4">История событий</h2>
+            <ul class="divide-y divide-neutral-800">
+                <li class="py-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-semibold text-cyan-400">server:allocation.delete</span>
+                        <span class="text-neutral-400 ml-2">Удалён порт <span class="font-mono">0.0.0.0:26649</span></span>
+                    </div>
+                    <span class="text-xs text-neutral-500">7 минут назад</span>
+                </li>
+                <li class="py-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-semibold text-cyan-400">server:allocation.create</span>
+                        <span class="text-neutral-400 ml-2">Добавлен порт <span class="font-mono">0.0.0.0:26649</span></span>
+                    </div>
+                    <span class="text-xs text-neutral-500">7 минут назад</span>
+                </li>
+                <li class="py-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-semibold text-cyan-400">server:domain.new</span>
+                        <span class="text-neutral-400 ml-2">Добавлен поддомен</span>
+                    </div>
+                    <span class="text-xs text-neutral-500">8 минут назад</span>
+                </li>
+                <li class="py-3 flex items-center justify-between">
+                    <div>
+                        <span class="font-semibold text-cyan-400">server:file.delete</span>
+                        <span class="text-neutral-400 ml-2">Удалён файл <span class="font-mono">/plugins/Chunky-Bukkit-1.4.36.jar</span></span>
+                    </div>
+                    <span class="text-xs text-neutral-500">4 дня назад</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

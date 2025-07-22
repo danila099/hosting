@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тарифы</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    {% include 'navbar.html' %}
+    <h1>Тарифы</h1>
+    <ul>
+        <li><b>Бесплатный</b>: 0₽/мес, RAM: 1GB, Слотов: 5</li>
+        {% for t in tariffs %}
+        <li><b>{{ t.name }}</b>: {{ t.price }}₽/мес, RAM: {{ t.ram }}, Слотов: {{ t.slots }}</li>
+        {% endfor %}
+    </ul>
+</body>
+</html> 

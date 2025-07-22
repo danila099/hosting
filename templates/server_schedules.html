@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Планировщик</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-neutral-800 text-neutral-200 min-h-screen">
+    {% include 'navbar.html' %}
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Планировщик</h1>
+        <div class="flex flex-wrap gap-2 mb-8 justify-center">
+            <a href="/profile" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Консоль</a>
+            <a href="/files/{{ order_id }}/" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Файлы</a>
+            <a href="/server/{{ order_id }}/databases" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Базы данных</a>
+            <a href="/server/{{ order_id }}/schedules" class="px-4 py-2 rounded bg-cyan-700 text-white font-bold">Планировщик</a>
+            <a href="/server/{{ order_id }}/users" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Пользователи</a>
+            <a href="/server/{{ order_id }}/backups" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Бэкапы</a>
+            <a href="/server/{{ order_id }}/network" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Сеть</a>
+            <a href="/server/{{ order_id }}/startup" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Запуск</a>
+            <a href="/server/{{ order_id }}/settings" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Настройки</a>
+            <a href="/server/{{ order_id }}/activity" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Активность</a>
+            <a href="/server/{{ order_id }}/subdomain" class="px-4 py-2 rounded bg-neutral-700 hover:bg-cyan-700 text-neutral-200">Поддомен</a>
+        </div>
+        <div class="bg-neutral-900 rounded-lg shadow-md p-6 w-full max-w-3xl mx-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold">Задачи планировщика</h2>
+                <button class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded">Создать задачу</button>
+            </div>
+            <table class="min-w-full text-sm">
+                <thead>
+                    <tr class="text-cyan-300 text-left">
+                        <th class="py-2 px-4">Название</th>
+                        <th class="py-2 px-4">Cron</th>
+                        <th class="py-2 px-4">Статус</th>
+                        <th class="py-2 px-4">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b border-neutral-700">
+                        <td class="py-2 px-4">restart</td>
+                        <td class="py-2 px-4">*/5 * * * *</td>
+                        <td class="py-2 px-4"><span class="text-green-400 font-bold">Активна</span></td>
+                        <td class="py-2 px-4 space-x-2">
+                            <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-xs">Детали</button>
+                            <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-xs">Удалить</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-center text-neutral-500 py-4">Нет других задач</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html> 

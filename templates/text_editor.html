@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать файл: {{ path }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <style>
+        .editor-container { max-width: 900px; margin: 0 auto; }
+        textarea { width: 100%; min-height: 500px; font-family: monospace; font-size: 1em; background: #18181b; color: #a7f3d0; border-radius: 6px; padding: 10px; }
+        .editor-actions { margin-top: 12px; }
+        .editor-actions button, .editor-actions a { margin-right: 10px; }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <h2>Редактировать файл: <span style="font-size:0.9em; color:#2563eb;">{{ path }}</span></h2>
+        <form method="post">
+            <textarea name="content" id="editor-textarea" required oninput="updatePreview()">{{ content }}</textarea>
+            <div class="editor-actions">
+                <button type="submit" style="background:#2563eb;color:#fff;padding:8px 18px;border-radius:5px;font-weight:500;">💾 Сохранить</button>
+                <a href="{{ url_for('list_files', order_id=order_id, path=path.rsplit('/', 1)[0]) }}" style="color:#2563eb;">Назад к файлам</a>
+            </div>
+        </form>
+        <h3 style="margin-top:32px;">Предпросмотр с подсветкой</h3>
+        <pre style="background:#18181b; color:#a7f3d0; border-radius:6px; padding:10px; overflow-x:auto;"><code id="preview" class="hljs"></code></pre>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+        function getLangByExt(path) {
+            const ext = path.split('.').pop().toLowerCase();
+            const map = {
+                'py': 'python', 'js': 'javascript', 'json': 'json', 'html': 'xml', 'css': 'css', 'sh': 'bash', 'bat': 'dos',
+                'yml': 'yaml', 'yaml': 'yaml', 'md': 'markdown', 'xml': 'xml', 'ini': 'ini', 'conf': 'ini', 'cfg': 'ini',
+                'log': 'plaintext', 'txt': 'plaintext', 'properties': 'ini'
+            };
+            return map[ext] || 'plaintext';
+        }
+        function updatePreview() {
+            const textarea = document.getElementById('editor-textarea');
+            const code = document.getElementById('preview');
+            code.textContent = textarea.value;
+            code.className = 'hljs ' + getLangByExt("{{ path|e }}");
+            hljs.highlightElement(code);
+        }
+        document.addEventListener('DOMContentLoaded', updatePreview);
+    </script>
+</body>
+</html> 
