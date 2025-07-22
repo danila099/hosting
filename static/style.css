@@ -1,0 +1,414 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #e0e7ff 0%, #f6f8fa 100%);
+    color: #222;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+h1 {
+    text-align: center;
+    margin-top: 40px;
+    color: #2563eb;
+    letter-spacing: 1px;
+    font-size: 2.2rem;
+}
+
+form, .content, ul, table {
+    background: #fff;
+    max-width: 420px;
+    margin: 30px auto;
+    padding: 28px 36px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+}
+
+label {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 1.05rem;
+    color: #374151;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    margin-top: 4px;
+    margin-bottom: 18px;
+    border: 1.5px solid #c7d2fe;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    background: #f3f6fd;
+    transition: border 0.2s;
+}
+
+input:focus, select:focus {
+    border: 1.5px solid #2563eb;
+    outline: none;
+    background: #e0e7ff;
+}
+
+button {
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 0;
+    width: 100%;
+    font-size: 1.08rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    margin-bottom: 8px;
+}
+
+button:hover, button:focus {
+    background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(37,99,235,0.13);
+}
+
+a {
+    color: #2563eb;
+    text-decoration: none;
+    margin: 0 8px;
+    font-weight: 500;
+    transition: color 0.15s;
+}
+
+a:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+ul {
+    background: #fff;
+    max-width: 420px;
+    margin: 30px auto;
+    padding: 28px 36px;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+    list-style: none;
+}
+
+ul li {
+    margin-bottom: 14px;
+    font-size: 1.13rem;
+    color: #374151;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+}
+
+table th, table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e0e7ef;
+    text-align: left;
+    font-size: 1rem;
+}
+
+table th {
+    background: #f1f5fb;
+    color: #2563eb;
+    font-weight: 700;
+}
+
+table tr:last-child td {
+    border-bottom: none;
+}
+
+.navbar {
+    width: 100%;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.07);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    min-height: 56px;
+    border-bottom: 1.5px solid #e0e7ef;
+}
+
+.navbar a {
+    display: inline-block;
+    padding: 10px 22px;
+    margin: 0 2px;
+    border-radius: 8px;
+    font-size: 1.08rem;
+    font-weight: 500;
+    color: #2563eb;
+    background: none;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    text-decoration: none;
+    letter-spacing: 0.2px;
+}
+
+.navbar a:hover, .navbar a:focus {
+    background: #e0e7ff;
+    color: #1d4ed8;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+    text-decoration: none;
+}
+
+.tariff-cards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 32px;
+    margin: 0 auto 48px auto;
+    max-width: 1100px;
+}
+
+.tariff-card {
+    background: linear-gradient(120deg, #f1f5fb 60%, #e0e7ff 100%);
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.10), 0 1.5px 6px rgba(0,0,0,0.04);
+    padding: 32px 28px 28px 28px;
+    min-width: 220px;
+    max-width: 260px;
+    flex: 1 1 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.18s, box-shadow 0.18s;
+    position: relative;
+}
+
+.tariff-card:hover, .tariff-card:focus-within {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 8px 32px rgba(37,99,235,0.16);
+}
+
+.tariff-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+    text-align: center;
+}
+
+.tariff-price {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1d4ed8;
+    margin-bottom: 12px;
+    text-align: center;
+}
+
+.tariff-info {
+    font-size: 1.08rem;
+    color: #374151;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.tariff-btn {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 12px 0;
+    width: 100%;
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.08rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    text-align: center;
+    text-decoration: none;
+}
+
+.tariff-btn:hover, .tariff-btn:focus {
+    background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(37,99,235,0.13);
+    text-decoration: none;
+}
+
+.server-panel {
+    margin-bottom: 36px;
+    background: #f8fafc;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(37,99,235,0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+    padding: 24px 24px 18px 24px;
+}
+.server-flex {
+    display: flex;
+    flex-direction: row;
+    gap: 32px;
+    align-items: flex-start;
+}
+.server-console-block {
+    flex: 2 1 0;
+    min-width: 340px;
+}
+.server-monitoring-block {
+    flex: 1 1 220px;
+    min-width: 220px;
+    max-width: 320px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 12px rgba(37,99,235,0.07);
+    padding: 18px 16px 12px 16px;
+    margin-left: 0;
+    margin-top: 0;
+}
+.monitoring-metrics {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    font-size: 1.04em;
+    color: #374151;
+    margin-bottom: 10px;
+}
+.server-info {
+    font-size: 1.08rem;
+    margin-bottom: 10px;
+}
+.server-status {
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 8px;
+    margin-left: 6px;
+}
+.server-status.running {
+    background: #d1fae5;
+    color: #059669;
+    border: 1.5px solid #059669;
+}
+.server-status.stopped {
+    background: #fee2e2;
+    color: #b91c1c;
+    border: 1.5px solid #b91c1c;
+}
+.server-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+.server-controls button {
+    flex: 1 1 0;
+    min-width: 80px;
+    padding: 10px 0;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(90deg, #2563eb 0%, #60a5fa 100%);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37,99,235,0.10);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+}
+.server-controls button:hover, .server-controls button:focus {
+    background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 100%);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 18px rgba(37,99,235,0.13);
+}
+.server-console {
+    background: #18181b;
+    color: #e0e7ef;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 1.05rem;
+    margin-top: 12px;
+    min-height: 120px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+.console-log div {
+    font-family: 'Fira Mono', 'Consolas', monospace;
+    font-size: 1.03rem;
+    margin-bottom: 2px;
+}
+/* Увеличиваю блок логов сервера внутри .server-console */
+.server-console .real-log {
+    max-height: 180px;
+    font-size: 1.01rem;
+    padding: 8px 10px;
+}
+
+.console-log {
+    width: 100%;
+    min-width: 600px;
+    max-width: 1200px;
+    overflow-x: auto;
+    background: #18181b;
+    color: #a7f3d0;
+    padding: 10px;
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 1em;
+    margin-bottom: 10px;
+}
+
+/* Стили для блока "Логи сервера" */
+.server-panel .server-console > div[style*="max-height:80px"] {
+    width: 100%;
+    min-width: 600px;
+    max-width: 1200px;
+    overflow-x: auto;
+    font-family: monospace;
+    font-size: 0.97em;
+}
+
+@media (max-width: 900px) {
+    .tariff-cards {
+        gap: 18px;
+    }
+    .tariff-card {
+        min-width: 180px;
+        max-width: 98vw;
+        padding: 22px 8px 18px 8px;
+    }
+    .server-flex {
+        flex-direction: column;
+        gap: 18px;
+    }
+    .server-monitoring-block {
+        max-width: 100%;
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+    form, .content, ul, table {
+        max-width: 98vw;
+        padding: 10px;
+    }
+    h1 {
+        font-size: 1.3rem;
+    }
+    table th, table td {
+        padding: 8px 4px;
+    }
+    .navbar {
+        flex-wrap: wrap;
+        min-height: 44px;
+        padding: 0 2px;
+    }
+    .navbar a {
+        padding: 8px 8px;
+        font-size: 0.98rem;
+    }
+} 
