@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Messa
 import json
 import os
 
-TELEGRAM_TOKEN = 'YOUR token_bot'  # <-- Вставьте сюда свой токен
+TELEGRAM_TOKEN = '7114393002:AAGfiZG7OxnYIwprk6X9H5vPdfG1e8s2T-U'  # <-- Вставьте сюда свой токен
 CHAT_IDS_FILE = 'telegram_chat_ids.json'
 
 def load_chat_ids():

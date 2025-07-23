@@ -12,6 +12,7 @@ import psutil
 from mcrcon import MCRcon
 import random
 import socket
+import datetime
 from telegram_bot import send_telegram_notification
 
 app = Flask(__name__)
@@ -19,18 +20,30 @@ app.secret_key = 'supersecretkey'  # Замени на свой ключ в пр
 ORDERS_FILE = 'orders.json'
 USERS_FILE = 'users.json'
 
-TARIFFS = [
-    {'name': 'Бесплатный', 'price': 0, 'ram': '1GB', 'slots': 5},
-    {'name': 'Базовый', 'price': 200, 'ram': '2GB', 'slots': 10},
-    {'name': 'Стандарт', 'price': 400, 'ram': '4GB', 'slots': 30},
-    {'name': 'Премиум', 'price': 800, 'ram': '8GB', 'slots': 100},
-]
+# Загружаем тарифы из файла или используем дефолтные
+def load_tariffs():
+    """Загрузить тарифы из файла"""
+    tariffs_file = 'tariffs.json'
+    if os.path.exists(tariffs_file):
+        with open(tariffs_file, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return [
+        {'name': 'Бесплатный', 'price': 0, 'ram': '1GB', 'slots': 5},
+        {'name': 'Базовый', 'price': 200, 'ram': '2GB', 'slots': 10},
+        {'name': 'Стандарт', 'price': 400, 'ram': '4GB', 'slots': 30},
+        {'name': 'Премиум', 'price': 800, 'ram': '8GB', 'slots': 100},
+    ]
+
+TARIFFS = load_tariffs()
 
 SERVER_BASE_DIR = 'server'
 SERVER_JAR = 'server.jar'
 
 # Глобальный словарь для хранения процессов
 server_processes = {}
+
+# Глобальный словарь для хранения времени запуска серверов
+server_start_times = {}
 
 def load_orders():
     if not os.path.exists(ORDERS_FILE):
@@ -145,6 +158,7 @@ def start_minecraft_server(order):
         with open(pid_path, 'w') as f:
             f.write(str(proc.pid))
         server_processes[order['order_id']] = proc
+        server_start_times[order['order_id']] = datetime.datetime.now()
     return proc.pid
 
 def stop_minecraft_server(order):
@@ -158,6 +172,7 @@ def stop_minecraft_server(order):
             pass
         os.remove(pid_path)
     server_processes.pop(order['order_id'], None)
+    server_start_times.pop(order['order_id'], None)
 
 def is_server_running(order):
     pid_path = get_pid_path(order)
@@ -180,6 +195,92 @@ def read_server_log(order, lines=10):
     with open(log_path, 'r', encoding='utf-8', errors='ignore') as f:
         log_lines = f.readlines()
     return log_lines[-lines:]
+
+def get_server_metrics(order):
+    """Получить метрики сервера"""
+    if not is_server_running(order):
+        return {
+            'cpu': 0,
+            'ram': 0,
+            'online': 0,
+            'tps': 0,
+            'uptime': '0m'
+        }
+    
+    pid_path = get_pid_path(order)
+    try:
+        with open(pid_path, 'r') as f:
+            pid = int(f.read())
+        
+        # Получаем процесс
+        proc = psutil.Process(pid)
+        
+        # CPU и RAM
+        cpu_percent = proc.cpu_percent()
+        memory_info = proc.memory_info()
+        ram_mb = memory_info.rss / 1024 / 1024
+        
+        # Время работы
+        start_time = server_start_times.get(order['order_id'])
+        if start_time:
+            uptime_delta = datetime.datetime.now() - start_time
+            uptime_minutes = int(uptime_delta.total_seconds() / 60)
+            if uptime_minutes < 60:
+                uptime = f"{uptime_minutes}m"
+            else:
+                hours = uptime_minutes // 60
+                minutes = uptime_minutes % 60
+                uptime = f"{hours}h {minutes}m"
+        else:
+            uptime = "Unknown"
+        
+        # Онлайн игроки и TPS через RCON
+        online_players = 0
+        tps = 20.0
+        
+        try:
+            rcon = order.get('rcon', {'host': '127.0.0.1', 'port': 25575, 'password': '123qwe'})
+            with MCRcon(rcon['host'], rcon['password'], port=rcon['port']) as mcr:
+                # Получаем список игроков
+                list_response = mcr.command('list')
+                if 'players online' in list_response.lower():
+                    # Парсим "There are 2 of a max of 20 players online"
+                    parts = list_response.split()
+                    for i, part in enumerate(parts):
+                        if part.isdigit() and i > 0:
+                            online_players = int(part)
+                            break
+                
+                # Получаем TPS (если доступно)
+                try:
+                    tps_response = mcr.command('tps')
+                    if 'TPS' in tps_response or 'tps' in tps_response.lower():
+                        # Парсим TPS из ответа
+                        import re
+                        tps_match = re.search(r'(\d+\.?\d*)', tps_response)
+                        if tps_match:
+                            tps = float(tps_match.group(1))
+                except:
+                    pass
+        except:
+            pass
+        
+        return {
+            'cpu': round(cpu_percent, 1),
+            'ram': round(ram_mb, 1),
+            'online': online_players,
+            'tps': round(tps, 1),
+            'uptime': uptime
+        }
+        
+    except Exception as e:
+        return {
+            'cpu': 0,
+            'ram': 0,
+            'online': 0,
+            'tps': 0,
+            'uptime': 'Error'
+        }
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -353,7 +454,59 @@ def admin():
                 flash(f'Java процесс {pid} убит!')
             except Exception as e:
                 flash(f'Ошибка при убийстве процесса {pid}: {e}')
-    return render_template('admin.html', orders=orders, users=users, java_processes=java_processes)
+    return render_template('admin.html', orders=orders, users=users, java_processes=java_processes, tariffs=TARIFFS)
+
+@app.route('/admin/tariffs', methods=['GET', 'POST'])
+def admin_tariffs():
+    if not session.get('is_admin'):
+        flash('Доступ только для администратора!')
+        return redirect(url_for('login'))
+    
+    global TARIFFS
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'update':
+            # Обновить существующий тариф
+            tariff_idx = int(request.form.get('tariff_idx'))
+            if 0 <= tariff_idx < len(TARIFFS):
+                TARIFFS[tariff_idx]['name'] = request.form.get('name')
+                TARIFFS[tariff_idx]['price'] = int(request.form.get('price'))
+                TARIFFS[tariff_idx]['ram'] = request.form.get('ram')
+                TARIFFS[tariff_idx]['slots'] = int(request.form.get('slots'))
+                flash('Тариф обновлен!')
+        
+        elif action == 'create':
+            # Создать новый тариф
+            new_tariff = {
+                'name': request.form.get('name'),
+                'price': int(request.form.get('price')),
+                'ram': request.form.get('ram'),
+                'slots': int(request.form.get('slots'))
+            }
+            TARIFFS.append(new_tariff)
+            flash('Новый тариф создан!')
+        
+        elif action == 'delete':
+            # Удалить тариф
+            tariff_idx = int(request.form.get('tariff_idx'))
+            if 0 <= tariff_idx < len(TARIFFS) and len(TARIFFS) > 1:
+                deleted_tariff = TARIFFS.pop(tariff_idx)
+                flash(f'Тариф "{deleted_tariff["name"]}" удален!')
+            else:
+                flash('Нельзя удалить последний тариф!')
+        
+        # Сохранить тарифы в файл
+        save_tariffs()
+    
+    return render_template('admin_tariffs.html', tariffs=TARIFFS)
+
+def save_tariffs():
+    """Сохранить тарифы в файл"""
+    tariffs_file = 'tariffs.json'
+    with open(tariffs_file, 'w', encoding='utf-8') as f:
+        json.dump(TARIFFS, f, ensure_ascii=False, indent=2)
 
 @app.route('/logs/<order_id>')
 def get_logs(order_id):
@@ -373,6 +526,20 @@ def server_status(order_id):
         return {'status': 'not_found'}, 404
     running = is_server_running(order)
     return {'status': 'running' if running else 'stopped'}
+
+@app.route('/server_metrics/<order_id>')
+def server_metrics(order_id):
+    if 'user' not in session:
+        return {'error': 'unauthorized'}, 401
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return {'error': 'not found'}, 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return {'error': 'access denied'}, 403
+    
+    metrics = get_server_metrics(order)
+    return metrics
 
 @app.route('/files/<order_id>/', defaults={'path': ''})
 @app.route('/files/<order_id>/<path:path>')
@@ -498,41 +665,416 @@ def rcon_command(order_id):
         resp = f'Ошибка RCON: {e}'
     return {'response': resp}
 
-@app.route('/server/<order_id>/databases')
+@app.route('/server/<order_id>/databases', methods=['GET', 'POST'])
 def server_databases(order_id):
-    return render_template('server_databases.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    # Получить базы данных из заказа
+    if 'databases' not in order:
+        order['databases'] = [
+            {
+                'name': 'minecraft_db',
+                'user': order_id[:8],
+                'host': 'localhost',
+                'type': 'SQLite',
+                'created': datetime.datetime.now().isoformat()
+            }
+        ]
+        save_orders(load_orders())
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            db_name = request.form.get('db_name', '').strip()
+            if db_name:
+                database = {
+                    'name': db_name,
+                    'user': order_id[:8],
+                    'host': 'localhost',
+                    'type': 'SQLite',
+                    'created': datetime.datetime.now().isoformat()
+                }
+                order['databases'].append(database)
+                save_orders(load_orders())
+                flash(f'База данных {db_name} создана!')
+        
+        elif action == 'delete':
+            db_name = request.form.get('db_name')
+            order['databases'] = [db for db in order['databases'] if db['name'] != db_name]
+            save_orders(load_orders())
+            flash(f'База данных {db_name} удалена!')
+    
+    return render_template('server_databases.html', order_id=order_id, databases=order.get('databases', []))
 
-@app.route('/server/<order_id>/schedules')
+@app.route('/server/<order_id>/schedules', methods=['GET', 'POST'])
 def server_schedules(order_id):
-    return render_template('server_schedules.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    # Получить задачи из заказа
+    if 'schedules' not in order:
+        order['schedules'] = []
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            name = request.form.get('name', '').strip()
+            cron = request.form.get('cron', '').strip()
+            command = request.form.get('command', '').strip()
+            
+            if name and cron and command:
+                schedule = {
+                    'id': str(uuid.uuid4()),
+                    'name': name,
+                    'cron': cron,
+                    'command': command,
+                    'active': True,
+                    'created': datetime.datetime.now().isoformat()
+                }
+                order['schedules'].append(schedule)
+                save_orders(load_orders())
+                flash(f'Задача {name} создана!')
+        
+        elif action == 'delete':
+            schedule_id = request.form.get('schedule_id')
+            order['schedules'] = [s for s in order['schedules'] if s.get('id') != schedule_id]
+            save_orders(load_orders())
+            flash('Задача удалена!')
+        
+        elif action == 'toggle':
+            schedule_id = request.form.get('schedule_id')
+            for schedule in order['schedules']:
+                if schedule.get('id') == schedule_id:
+                    schedule['active'] = not schedule.get('active', True)
+                    break
+            save_orders(load_orders())
+            flash('Статус задачи изменен!')
+    
+    return render_template('server_schedules.html', order_id=order_id, schedules=order.get('schedules', []))
 
-@app.route('/server/<order_id>/users')
+@app.route('/server/<order_id>/users', methods=['GET', 'POST'])
 def server_users(order_id):
-    return render_template('server_users.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    whitelist_path = os.path.join(get_order_dir(order), 'whitelist.json')
+    ops_path = os.path.join(get_order_dir(order), 'ops.json')
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        username = request.form.get('username', '').strip()
+        
+        if action == 'add_whitelist' and username:
+            # Добавить в whitelist
+            whitelist = []
+            if os.path.exists(whitelist_path):
+                with open(whitelist_path, 'r', encoding='utf-8') as f:
+                    whitelist = json.load(f)
+            
+            if not any(p['name'].lower() == username.lower() for p in whitelist):
+                whitelist.append({'uuid': str(uuid.uuid4()), 'name': username})
+                with open(whitelist_path, 'w', encoding='utf-8') as f:
+                    json.dump(whitelist, f, ensure_ascii=False, indent=2)
+                flash(f'Игрок {username} добавлен в whitelist!')
+        
+        elif action == 'remove_whitelist' and username:
+            # Удалить из whitelist
+            if os.path.exists(whitelist_path):
+                with open(whitelist_path, 'r', encoding='utf-8') as f:
+                    whitelist = json.load(f)
+                whitelist = [p for p in whitelist if p['name'].lower() != username.lower()]
+                with open(whitelist_path, 'w', encoding='utf-8') as f:
+                    json.dump(whitelist, f, ensure_ascii=False, indent=2)
+                flash(f'Игрок {username} удален из whitelist!')
+    
+    # Загрузить списки пользователей
+    whitelist_users = []
+    if os.path.exists(whitelist_path):
+        with open(whitelist_path, 'r', encoding='utf-8') as f:
+            whitelist_users = json.load(f)
+    
+    ops_users = []
+    if os.path.exists(ops_path):
+        with open(ops_path, 'r', encoding='utf-8') as f:
+            ops_users = json.load(f)
+    
+    return render_template('server_users.html', order_id=order_id, 
+                         whitelist_users=whitelist_users, ops_users=ops_users)
 
-@app.route('/server/<order_id>/backups')
+@app.route('/server/<order_id>/backups', methods=['GET', 'POST'])
 def server_backups(order_id):
-    return render_template('server_backups.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    backups_dir = os.path.join(get_order_dir(order), 'backups')
+    if not os.path.exists(backups_dir):
+        os.makedirs(backups_dir)
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'create':
+            # Проверить тариф - бесплатный тариф не может создавать бэкапы
+            tariff_name = order.get('tariff', '')
+            if tariff_name.lower() in ['бесплатный', 'free']:
+                flash('Создание бэкапов недоступно на бесплатном тарифе. Купите другой хостинг для доступа к бэкапам!')
+            else:
+                # Создать бэкап
+                backup_name = f"backup-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}.zip"
+                backup_path = os.path.join(backups_dir, backup_name)
+                server_dir = get_order_dir(order)
+                
+                try:
+                    shutil.make_archive(backup_path[:-4], 'zip', server_dir, 
+                                      ignore=shutil.ignore_patterns('backups', '*.log', '__pycache__'))
+                    flash(f'Бэкап {backup_name} создан!')
+                except Exception as e:
+                    flash(f'Ошибка создания бэкапа: {e}')
+        
+        elif action == 'delete':
+            backup_name = request.form.get('backup_name')
+            backup_path = os.path.join(backups_dir, backup_name)
+            if os.path.exists(backup_path):
+                os.remove(backup_path)
+                flash(f'Бэкап {backup_name} удален!')
+    
+    # Получить список бэкапов
+    backups = []
+    if os.path.exists(backups_dir):
+        for f in os.listdir(backups_dir):
+            if f.endswith('.zip'):
+                path = os.path.join(backups_dir, f)
+                stat = os.stat(path)
+                backups.append({
+                    'name': f,
+                    'date': datetime.datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M'),
+                    'size': f"{stat.st_size / 1024 / 1024:.1f} MB"
+                })
+    
+    return render_template('server_backups.html', order_id=order_id, backups=backups, order=order)
 
 @app.route('/server/<order_id>/network')
 def server_network(order_id):
-    return render_template('server_network.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    # Получить информацию о портах
+    main_port = order.get('server_port', 25565)
+    rcon_port = order.get('rcon', {}).get('port', 25575)
+    
+    ports = [
+        {
+            'port': main_port,
+            'ip': '127.0.0.1',
+            'status': 'Активен' if is_server_running(order) else 'Неактивен',
+            'type': 'Minecraft'
+        },
+        {
+            'port': rcon_port,
+            'ip': '127.0.0.1', 
+            'status': 'Активен' if is_server_running(order) else 'Неактивен',
+            'type': 'RCON'
+        }
+    ]
+    
+    return render_template('server_network.html', order_id=order_id, ports=ports)
 
-@app.route('/server/<order_id>/startup')
+@app.route('/server/<order_id>/startup', methods=['GET', 'POST'])
 def server_startup(order_id):
-    return render_template('server_startup.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    # Получить текущие настройки запуска
+    startup_config = order.get('startup_config', {
+        'jar_file': 'server.jar',
+        'java_args': f"-Xmx{order.get('tariff_params', {}).get('ram', '1GB')} -Xms512M",
+        'server_args': 'nogui'
+    })
+    
+    if request.method == 'POST':
+        # Сохранить настройки запуска
+        startup_config['jar_file'] = request.form.get('jar_file', 'server.jar')
+        startup_config['java_args'] = request.form.get('java_args', '')
+        startup_config['server_args'] = request.form.get('server_args', 'nogui')
+        
+        order['startup_config'] = startup_config
+        save_orders(load_orders())
+        flash('Настройки запуска сохранены!')
+        return redirect(url_for('server_startup', order_id=order_id))
+    
+    # Сформировать полную команду запуска
+    ram = order.get('tariff_params', {}).get('ram', '1GB').replace('GB', 'G')
+    full_command = f"java {startup_config['java_args']} -jar {startup_config['jar_file']} {startup_config['server_args']}"
+    
+    return render_template('server_startup.html', order_id=order_id, 
+                         startup_config=startup_config, full_command=full_command)
 
-@app.route('/server/<order_id>/settings')
+@app.route('/server/<order_id>/settings', methods=['GET', 'POST'])
 def server_settings(order_id):
-    return render_template('server_settings.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    props_path = os.path.join(get_order_dir(order), 'server.properties')
+    
+    # Дефолтные настройки
+    default_props = {
+        'server-name': 'ApexNodes Server',
+        'motd': 'Добро пожаловать!',
+        'white-list': 'false',
+        'max-players': str(order.get('tariff_params', {}).get('slots', 20)),
+        'difficulty': 'normal',
+        'gamemode': 'survival',
+        'pvp': 'true',
+        'spawn-protection': '16'
+    }
+    
+    if request.method == 'POST':
+        # Сохранить настройки
+        new_props = {}
+        for key in default_props.keys():
+            new_props[key] = request.form.get(key, default_props[key])
+        
+        # Записать в файл
+        lines = []
+        if os.path.exists(props_path):
+            with open(props_path, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+        
+        # Обновить существующие или добавить новые
+        for key, value in new_props.items():
+            found = False
+            for i, line in enumerate(lines):
+                if line.startswith(f'{key}='):
+                    lines[i] = f'{key}={value}\n'
+                    found = True
+                    break
+            if not found:
+                lines.append(f'{key}={value}\n')
+        
+        with open(props_path, 'w', encoding='utf-8') as f:
+            f.writelines(lines)
+        
+        flash('Настройки сохранены!')
+        return redirect(url_for('server_settings', order_id=order_id))
+    
+    # Загрузить текущие настройки
+    current_props = default_props.copy()
+    if os.path.exists(props_path):
+        with open(props_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if '=' in line and not line.startswith('#'):
+                    key, value = line.strip().split('=', 1)
+                    if key in current_props:
+                        current_props[key] = value
+    
+    return render_template('server_settings.html', order_id=order_id, props=current_props)
 
 @app.route('/server/<order_id>/activity')
 def server_activity(order_id):
-    return render_template('server_activity.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    # Получить историю активности из логов заказа
+    activity_log = order.get('activity_log', [])
+    
+    # Добавить базовые события если их нет
+    if not activity_log:
+        activity_log = [
+            {
+                'event': 'server:created',
+                'description': 'Сервер создан',
+                'timestamp': datetime.datetime.now() - datetime.timedelta(days=1)
+            }
+        ]
+    
+    # Отсортировать по времени (новые сверху)
+    activity_log.sort(key=lambda x: x.get('timestamp', datetime.datetime.now()), reverse=True)
+    
+    return render_template('server_activity.html', order_id=order_id, activities=activity_log)
 
-@app.route('/server/<order_id>/subdomain')
+@app.route('/server/<order_id>/subdomain', methods=['GET', 'POST'])
 def server_subdomain(order_id):
-    return render_template('server_subdomain.html', order_id=order_id)
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    orders = load_orders()
+    order = next((o for o in orders if o.get('order_id') == order_id), None)
+    if not order:
+        return 'Order not found', 404
+    if not session.get('is_admin') and order['email'] != session['user']:
+        return 'Access denied', 403
+    
+    if request.method == 'POST':
+        action = request.form.get('action')
+        
+        if action == 'create':
+            subdomain = request.form.get('subdomain', '').strip().lower()
+            if subdomain and subdomain.isalnum():
+                order['subdomain'] = f"{subdomain}.apexnodes.ru"
+                save_orders(load_orders())
+                flash(f'Поддомен {subdomain}.apexnodes.ru создан!')
+            else:
+                flash('Неверное имя поддомена! Используйте только буквы и цифры.')
+        
+        elif action == 'delete':
+            order.pop('subdomain', None)
+            save_orders(load_orders())
+            flash('Поддомен удален!')
+    
+    current_subdomain = order.get('subdomain')
+    server_port = order.get('server_port', 25565)
+    
+    return render_template('server_subdomain.html', order_id=order_id, 
+                         current_subdomain=current_subdomain, server_port=server_port)
 
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True, host='0.0.0.0') 
