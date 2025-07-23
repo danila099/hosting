@@ -25,23 +25,56 @@
         </div>
         <div class="bg-neutral-900 rounded-lg shadow-md p-6 w-full max-w-3xl mx-auto">
             <h2 class="text-xl font-semibold mb-4">Основные настройки сервера</h2>
-            <form class="space-y-4">
+            <form method="post" class="space-y-4">
                 <div>
                     <label class="block mb-1 font-semibold">Имя сервера</label>
-                    <input type="text" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="ApexNodes Server">
+                    <input type="text" name="server-name" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="{{ props['server-name'] }}">
                 </div>
                 <div>
                     <label class="block mb-1 font-semibold">MOTD</label>
-                    <input type="text" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="Добро пожаловать!">
+                    <input type="text" name="motd" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="{{ props['motd'] }}">
+                </div>
+                <div>
+                    <label class="block mb-1 font-semibold">Максимум игроков</label>
+                    <input type="number" name="max-players" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="{{ props['max-players'] }}">
+                </div>
+                <div>
+                    <label class="block mb-1 font-semibold">Сложность</label>
+                    <select name="difficulty" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100">
+                        <option value="peaceful" {% if props['difficulty'] == 'peaceful' %}selected{% endif %}>Мирная</option>
+                        <option value="easy" {% if props['difficulty'] == 'easy' %}selected{% endif %}>Легкая</option>
+                        <option value="normal" {% if props['difficulty'] == 'normal' %}selected{% endif %}>Нормальная</option>
+                        <option value="hard" {% if props['difficulty'] == 'hard' %}selected{% endif %}>Сложная</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1 font-semibold">Режим игры</label>
+                    <select name="gamemode" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100">
+                        <option value="survival" {% if props['gamemode'] == 'survival' %}selected{% endif %}>Выживание</option>
+                        <option value="creative" {% if props['gamemode'] == 'creative' %}selected{% endif %}>Творчество</option>
+                        <option value="adventure" {% if props['gamemode'] == 'adventure' %}selected{% endif %}>Приключение</option>
+                        <option value="spectator" {% if props['gamemode'] == 'spectator' %}selected{% endif %}>Наблюдатель</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-1 font-semibold">PvP</label>
+                    <select name="pvp" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100">
+                        <option value="true" {% if props['pvp'] == 'true' %}selected{% endif %}>Включен</option>
+                        <option value="false" {% if props['pvp'] == 'false' %}selected{% endif %}>Отключен</option>
+                    </select>
                 </div>
                 <div>
                     <label class="block mb-1 font-semibold">Whitelist</label>
-                    <select class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100">
-                        <option>Включен</option>
-                        <option>Отключен</option>
+                    <select name="white-list" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100">
+                        <option value="true" {% if props['white-list'] == 'true' %}selected{% endif %}>Включен</option>
+                        <option value="false" {% if props['white-list'] == 'false' %}selected{% endif %}>Отключен</option>
                     </select>
                 </div>
-                <button type="button" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded">Сохранить</button>
+                <div>
+                    <label class="block mb-1 font-semibold">Защита спавна (блоков)</label>
+                    <input type="number" name="spawn-protection" class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" value="{{ props['spawn-protection'] }}">
+                </div>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded">Сохранить</button>
             </form>
         </div>
     </div>

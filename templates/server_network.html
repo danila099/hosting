@@ -38,18 +38,19 @@
                     </tr>
                 </thead>
                 <tbody>
+                    {% for port in ports %}
                     <tr class="border-b border-neutral-700">
-                        <td class="py-2 px-4">25565</td>
-                        <td class="py-2 px-4">127.0.0.1</td>
-                        <td class="py-2 px-4"><span class="text-green-400 font-bold">Активен</span></td>
+                        <td class="py-2 px-4">{{ port.port }}</td>
+                        <td class="py-2 px-4">{{ port.ip }}</td>
+                        <td class="py-2 px-4">
+                            <span class="{% if port.status == 'Активен' %}text-green-400{% else %}text-red-400{% endif %} font-bold">{{ port.status }}</span>
+                            <span class="text-xs text-neutral-400 ml-2">({{ port.type }})</span>
+                        </td>
                         <td class="py-2 px-4 space-x-2">
-                            <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-xs">Детали</button>
-                            <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-xs">Удалить</button>
+                            <span class="text-xs text-neutral-400">{{ port.type }}</span>
                         </td>
                     </tr>
-                    <tr>
-                        <td colspan="4" class="text-center text-neutral-500 py-4">Нет других портов</td>
-                    </tr>
+                    {% endfor %}
                 </tbody>
             </table>
         </div>

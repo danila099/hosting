@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Управление тарифами</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-neutral-800 text-neutral-200 min-h-screen">
+    {% include 'navbar.html' %}
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-6">Управление тарифами</h1>
+        <div class="flex justify-between items-center mb-6">
+            <a href="/admin" class="text-cyan-400 hover:underline">← Назад в админку</a>
+            <button onclick="toggleCreateForm()"
+                class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Создать
+                тариф</button>
+        </div>
+        <!-- Форма создания тарифа -->
+        <div id="createForm" class="mb-6 p-4 bg-neutral-900 rounded hidden">
+            <h3 class="text-lg font-semibold mb-4">Создать новый тариф</h3>
+            <form method="post" class="grid grid-cols-2 gap-4">
+                <input type="hidden" name="action" value="create">
+                <div>
+                    <label class="block mb-1 text-sm font-semibold">Название</label>
+                    <input type="text" name="name" placeholder="Супер тариф"
+                        class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100"
+                        required>
+                </div>
+                <div>
+                    <label class="block mb-1 text-sm font-semibold">Цена (₽/мес)</label>
+                    <input type="number" name="price" placeholder="500"
+                        class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100"
+                        required>
+                </div>
+                <div>
+                    <label class="block mb-1 text-sm font-semibold">RAM</label>
+                    <input type="text" name="ram" placeholder="8GB"
+                        class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100"
+                        required>
+                </div>
+                <div>
+                    <label class="block mb-1 text-sm font-semibold">Слоты</label>
+                    <input type="number" name="slots" placeholder="50"
+                        class="w-full px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100"
+                        required>
+                </div>
+                <div class="col-span-2 flex gap-2">
+                    <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded">Создать</button>
+                    <button type="button" onclick="toggleCreateForm()"
+                        class="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded">Отмена</button>
+                </div>
+            </form>
+        </div>
+        <!-- Список тарифов -->
+        <div class="grid gap-4">
+            {% for tariff in tariffs %}
+            <div class="bg-neutral-900 rounded-lg p-6">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-bold text-cyan-300 mb-2">{{ tariff.name }}</h3>
+                        <div class="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <span class="text-neutral-400">Цена:</span>
+                                <span class="font-bold text-green-400">{{ tariff.price }}₽/мес</span>
+                            </div>
+                            <div>
+                                <span class="text-neutral-400">RAM:</span>
+                                <span class="font-bold text-yellow-400">{{ tariff.ram }}</span>
+                            </div>
+                            <div>
+                                <span class="text-neutral-400">Слоты:</span>
+                                <span class="font-bold text-blue-400">{{ tariff.slots }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 ml-4">
+                        <button onclick="toggleEditForm({{ loop.index0 }})"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-sm">Редактировать</button>
+                        {% if tariffs|length > 1 %}
+                        <form method="post" style="display: inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="tariff_idx" value="{{ loop.index0 }}">
+                            <button type="submit"
+                                class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-sm"
+                                onclick="return confirm('Удалить тариф {{ tariff.name }}?')">Удалить</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                <!-- Форма редактирования -->
+                <div id="editForm{{ loop.index0 }}" class="mt-4 p-4 bg-neutral-800 rounded hidden">
+                    <h4 class="text-lg font-semibold mb-3">Редактировать тариф</h4>
+                    <form method="post" class="grid grid-cols-2 gap-4">
+                        <input type="hidden" name="action" value="update">
+                        <input type="hidden" name="tariff_idx" value="{{ loop.index0 }}">
+                        <div>
+                            <label class="block mb-1 text-sm font-semibold">Название</label>
+                            <input type="text" name="name" value="{{ tariff.name }}"
+                                class="w-full px-3 py-2 rounded bg-neutral-700 border border-neutral-600 text-neutral-100"
+                                required>
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sm font-semibold">Цена (₽/мес)</label>
+                            <input type="number" name="price" value="{{ tariff.price }}"
+                                class="w-full px-3 py-2 rounded bg-neutral-700 border border-neutral-600 text-neutral-100"
+                                required>
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sm font-semibold">RAM</label>
+                            <input type="text" name="ram" value="{{ tariff.ram }}"
+                                class="w-full px-3 py-2 rounded bg-neutral-700 border border-neutral-600 text-neutral-100"
+                                required>
+                        </div>
+                        <div>
+                            <label class="block mb-1 text-sm font-semibold">Слоты</label>
+                            <input type="number" name="slots" value="{{ tariff.slots }}"
+                                class="w-full px-3 py-2 rounded bg-neutral-700 border border-neutral-600 text-neutral-100"
+                                required>
+                        </div>
+                        <div class="col-span-2 flex gap-2">
+                            <button type="submit"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded">Сохранить</button>
+                            <button type="button" onclick="toggleEditForm({{ loop.index0 }})"
+                                class="bg-neutral-600 hover:bg-neutral-700 text-white font-semibold py-2 px-4 rounded">Отмена</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <script>
+        function toggleCreateForm() {
+            const form = document.getElementById('createForm');
+            form.classList.toggle('hidden');
+        }
+
+        function toggleEditForm(index) {
+            const form = document.getElementById('editForm' + index);
+            form.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

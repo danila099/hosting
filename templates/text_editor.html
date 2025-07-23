@@ -12,7 +12,8 @@
         .editor-actions button, .editor-actions a { margin-right: 10px; }
     </style>
 </head>
-<body>
+<body class="bg-neutral-800 text-neutral-200 min-h-screen">
+    {% include 'navbar.html' %}
     <div class="editor-container">
         <h2>Редактировать файл: <span style="font-size:0.9em; color:#2563eb;">{{ path }}</span></h2>
         <form method="post">

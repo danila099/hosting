@@ -97,6 +97,19 @@
         {% else %}
         <p class="text-neutral-400 mb-8">Нет java-процессов.</p>
         {% endif %}
+        <div class="mb-8">
+            <h3 class="text-lg font-semibold mb-4">Управление системой</h3>
+            <div class="flex flex-wrap gap-4">
+                <a href="/admin/tariffs" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded">Управление тарифами</a>
+                <div class="text-neutral-400">
+                    <span class="font-semibold">Текущие тарифы:</span>
+                    {% for tariff in tariffs %}
+                    <span class="ml-2 text-cyan-300">{{ tariff.name }} ({{ tariff.price }}₽)</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
         <div class="flex space-x-4 mt-8">
             <a href="/" class="text-cyan-400 hover:underline">На главную</a>
         </div>

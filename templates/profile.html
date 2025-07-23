@@ -35,7 +35,7 @@
                     <div>
                         <div class="text-lg font-bold mb-1">{{ o.tariff }}</div>
                         <div class="text-sm text-neutral-400 mb-1">RAM: <span class="font-bold text-yellow-400">{{ o.tariff_params.ram }}</span>, Слотов: <span class="font-bold text-green-400">{{ o.tariff_params.slots }}</span>, Цена: <span class="font-bold text-cyan-400">{{ o.tariff_params.price }}₽/мес</span></div>
-                        <div class="text-sm mb-1">Для подключения: <span class="text-blue-400 font-mono">127.0.0.1:{{ o.server_port }}</span></div>
+                        <div class="text-sm mb-1">Для подключения: <span class="text-blue-400 font-mono">192.168.0.108:{{ o.server_port }}</span></div>
                         <div class="text-sm">Статус: <span class="font-bold {% if o.status == 'running' %}text-green-400{% else %}text-red-400{% endif %}" id="status-{{ o.order_id }}">{{ 'Запущен' if o.status == 'running' else 'Остановлен' }}</span>
                         <span id="action-status-{{ o.order_id }}" class="ml-2 text-yellow-400"></span></div>
                     </div>
@@ -186,19 +186,20 @@
         }
     </script>
     <script>
-        function randomMetric(min, max) {
-            return Math.random() * (max - min) + min;
-        }
-        function formatUptime(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = seconds % 60;
-            return `${h}ч ${m}м ${s}с`;
-        }
+        // Инициализация графиков мониторинга
         var monitoringCharts = {};
+        var metricsHistory = {};
+        
         orderIds.forEach(function(orderId) {
             const ctx = document.getElementById('chart-' + orderId);
             if (!ctx) return;
+            
+            // Инициализируем историю метрик
+            metricsHistory[orderId] = {
+                cpu: Array(20).fill(0),
+                ram: Array(20).fill(0)
+            };
+            
             monitoringCharts[orderId] = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -206,54 +207,116 @@
                     datasets: [
                         {
                             label: 'CPU %',
-                            data: Array(20).fill(0),
-                            borderColor: '#2563eb',
-                            backgroundColor: 'rgba(37,99,235,0.08)',
+                            data: metricsHistory[orderId].cpu,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59,130,246,0.1)',
                             tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 4
                         },
                         {
                             label: 'RAM MB',
-                            data: Array(20).fill(0),
-                            borderColor: '#059669',
-                            backgroundColor: 'rgba(5,150,105,0.08)',
+                            data: metricsHistory[orderId].ram,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16,185,129,0.1)',
                             tension: 0.3,
+                            pointRadius: 2,
+                            pointHoverRadius: 4,
+                            yAxisID: 'y1'
                         }
                     ]
                 },
                 options: {
                     responsive: false,
-                    plugins: { legend: { display: true } },
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { 
+                            display: true,
+                            labels: {
+                                color: '#d1d5db',
+                                font: { size: 10 }
+                            }
+                        }
+                    },
                     scales: {
-                        y: { beginAtZero: true }
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                color: '#9ca3af',
+                                font: { size: 9 }
+                            },
+                            grid: {
+                                color: 'rgba(156,163,175,0.2)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: false,
+                            position: 'right',
+                            beginAtZero: true
+                        }
+                    },
+                    animation: {
+                        duration: 0
                     }
                 }
             });
         });
+
+        // Функция обновления метрик
+        function updateMetrics(orderId) {
+            fetch(`/server_metrics/${orderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const metricsDiv = document.getElementById('metrics-' + orderId);
+                    if (metricsDiv) {
+                        metricsDiv.querySelector('.metric-cpu').textContent = data.cpu;
+                        metricsDiv.querySelector('.metric-ram').textContent = data.ram;
+                        metricsDiv.querySelector('.metric-online').textContent = data.online;
+                        metricsDiv.querySelector('.metric-tps').textContent = data.tps;
+                        metricsDiv.querySelector('.metric-uptime').textContent = data.uptime;
+                    }
+
+                    // Обновляем график
+                    const chart = monitoringCharts[orderId];
+                    if (chart && metricsHistory[orderId]) {
+                        // Добавляем новые данные и удаляем старые
+                        metricsHistory[orderId].cpu.push(data.cpu);
+                        metricsHistory[orderId].cpu.shift();
+                        metricsHistory[orderId].ram.push(data.ram);
+                        metricsHistory[orderId].ram.shift();
+                        
+                        // Обновляем график
+                        chart.data.datasets[0].data = [...metricsHistory[orderId].cpu];
+                        chart.data.datasets[1].data = [...metricsHistory[orderId].ram];
+                        chart.update('none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка получения метрик для сервера', orderId, ':', error);
+                    // При ошибке показываем нули
+                    const metricsDiv = document.getElementById('metrics-' + orderId);
+                    if (metricsDiv) {
+                        metricsDiv.querySelector('.metric-cpu').textContent = '--';
+                        metricsDiv.querySelector('.metric-ram').textContent = '--';
+                        metricsDiv.querySelector('.metric-online').textContent = '--';
+                        metricsDiv.querySelector('.metric-tps').textContent = '--';
+                        metricsDiv.querySelector('.metric-uptime').textContent = '--';
+                    }
+                });
+        }
+
+        // Запускаем обновление метрик каждые 3 секунды
         setInterval(function() {
-            orderIds.forEach(function(orderId) {
-                const cpu = randomMetric(10, 80).toFixed(1);
-                const ram = randomMetric(400, 1200).toFixed(0);
-                const online = Math.floor(randomMetric(0, 10));
-                const tps = randomMetric(18, 20).toFixed(2);
-                const uptime = formatUptime(Math.floor(randomMetric(1000, 10000)));
-                const metrics = document.getElementById('metrics-' + orderId);
-                if (metrics) {
-                    metrics.querySelector('.metric-cpu').textContent = cpu;
-                    metrics.querySelector('.metric-ram').textContent = ram;
-                    metrics.querySelector('.metric-online').textContent = online;
-                    metrics.querySelector('.metric-tps').textContent = tps;
-                    metrics.querySelector('.metric-uptime').textContent = uptime;
-                }
-                const chart = monitoringCharts[orderId];
-                if (chart) {
-                    chart.data.datasets[0].data.push(Number(cpu));
-                    chart.data.datasets[0].data.shift();
-                    chart.data.datasets[1].data.push(Number(ram));
-                    chart.data.datasets[1].data.shift();
-                    chart.update('none');
-                }
-            });
+            orderIds.forEach(updateMetrics);
         }, 3000);
+
+        // Первоначальное обновление метрик
+        orderIds.forEach(updateMetrics);
     </script>
 </body>
 </html> 

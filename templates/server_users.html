@@ -25,31 +25,67 @@
         </div>
         <div class="bg-neutral-900 rounded-lg shadow-md p-6 w-full max-w-3xl mx-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Пользователи сервера</h2>
-                <button class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded">Добавить пользователя</button>
+                <h2 class="text-xl font-semibold">Whitelist игроков</h2>
             </div>
+            
+            <!-- Форма добавления игрока -->
+            <form method="post" class="mb-4 flex gap-2">
+                <input type="hidden" name="action" value="add_whitelist">
+                <input type="text" name="username" placeholder="Никнейм игрока" class="flex-1 px-3 py-2 rounded bg-neutral-800 border border-neutral-700 text-neutral-100" required>
+                <button type="submit" class="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 px-4 rounded">Добавить</button>
+            </form>
+            
             <table class="min-w-full text-sm">
                 <thead>
                     <tr class="text-cyan-300 text-left">
-                        <th class="py-2 px-4">Email</th>
-                        <th class="py-2 px-4">Роль</th>
+                        <th class="py-2 px-4">Никнейм</th>
+                        <th class="py-2 px-4">UUID</th>
                         <th class="py-2 px-4">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
+                    {% for user in whitelist_users %}
                     <tr class="border-b border-neutral-700">
-                        <td class="py-2 px-4">user@example.com</td>
-                        <td class="py-2 px-4"><span class="text-green-400 font-bold">Владелец</span></td>
+                        <td class="py-2 px-4">{{ user.name }}</td>
+                        <td class="py-2 px-4 text-xs text-neutral-400">{{ user.uuid[:8] }}...</td>
                         <td class="py-2 px-4 space-x-2">
-                            <button class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-1 px-3 rounded text-xs">Детали</button>
-                            <button class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-xs">Удалить</button>
+                            <form method="post" style="display: inline;">
+                                <input type="hidden" name="action" value="remove_whitelist">
+                                <input type="hidden" name="username" value="{{ user.name }}">
+                                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-3 rounded text-xs" onclick="return confirm('Удалить {{ user.name }} из whitelist?')">Удалить</button>
+                            </form>
                         </td>
                     </tr>
+                    {% endfor %}
+                    {% if not whitelist_users %}
                     <tr>
-                        <td colspan="3" class="text-center text-neutral-500 py-4">Нет других пользователей</td>
+                        <td colspan="3" class="text-center text-neutral-500 py-4">Whitelist пуст</td>
                     </tr>
+                    {% endif %}
                 </tbody>
             </table>
+            
+            {% if ops_users %}
+            <div class="mt-6">
+                <h3 class="text-lg font-semibold mb-2">Операторы сервера</h3>
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr class="text-cyan-300 text-left">
+                            <th class="py-2 px-4">Никнейм</th>
+                            <th class="py-2 px-4">Уровень</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for op in ops_users %}
+                        <tr class="border-b border-neutral-700">
+                            <td class="py-2 px-4">{{ op.name }}</td>
+                            <td class="py-2 px-4">{{ op.level }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
         </div>
     </div>
 </body>
